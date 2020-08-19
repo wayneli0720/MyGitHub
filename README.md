@@ -1,2 +1,2 @@
 # MyGitHub
-Hello GitHub/@_@\
+Hello GitHub\@_@/

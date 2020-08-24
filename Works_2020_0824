@@ -1,0 +1,17 @@
+#include<stdio.h>j
+
+int main()
+{
+u8 erase_cycles=1;
+  do
+  {
+  spi_nor_erase_full_chip(0x60);
+  
+  ChipEraseTime=spi_nor_get_performance_us()/1000;
+  printf("\r\n...2007 chip erase=%d ms,", ChipEraseTime);
+  erase_cycles++;
+  }
+  while(erase_cycles<=5)
+
+return 0;
+}

@@ -1,0 +1,91 @@
+void test_2007_read_vth_new_way(u32 start_addr,u32 read_page_cnt, u32 cycle_idx)
+{
+	u32 i,j;
+	u32 volt_index;
+	u8 flag = 0;
+  u8 DummyByte[3] =    {0};
+  u8 ExternalOsc_data[5] = { 0x00, 0x01, 0x00, 0x00, 0x00 };
+	u8 rd_selWL[5] =    {0x8B,0xE8,0x74,0x17,0x00};// change 0x8B & 0x74
+  u8 sclk_data[50] =  {0};
+	
+	TEST_BEGIN
+  for(i = 0; i < sizeof(read_volt_ref_2007_list);i++)
+  {
+    volt_index = read_volt_ref_2007_list[i]&0x1F;
+		volt_list[i] = base_volt_2007[volt_index]*((read_volt_ref_2007_list[i]>>5)+2);
+
+  /* read Vth only between  5V-10V*/
+		if((u32)volt_list[i] <VTH_VOLTAGE_5V||(u32)volt_list[i]>VTH_VOLTAGE_10V)
+		{
+			continue;
+		}
+
+//  step 1       2D+E3+4F
+	  spi_nor_enter_engineering_mode();
+		
+//  step 2     send volatile rd_selWL
+	rd_selWL[0] = read_volt_ref_2007_list[i];
+	rd_selWL[2] = ~read_volt_ref_2007_list[i];
+		
+	spi_nor_program_without_wen_poll(SPNOR_PAGE_PROGRAM_02H, CFG2007_ADDR_0X20/*0x20*/, rd_selWL, 5);
+		
+  //  step 3     send A3H
+  spi_nor_cmd_exec(0xA3,0,0, DummyByte,0);
+		
+  //  step 4     send voatile enable external_osc_en
+ 	spi_nor_program_without_wen_poll( SPNOR_PAGE_PROGRAM_02H, 0x1c0 , ExternalOsc_data, sizeof( ExternalOsc_data ) );
+
+  //  step 5     send sclk+50
+	spi_nor_send_clock(sclk_data, 50);
+
+  //  step 6     66+99 chip reset
+	spi_nor_chip_reset();
+	
+	//  delay 20us
+	delay_us(20);
+
+  //  step 7
+  for(j = 0; j < read_page_cnt;j++)
+		{
+			spi_nor_read(SPNOR_FAST_READ_0BH,start_addr+j*256,g_global_mem_buffer[MEM_PATTERN_READ],256);
+
+			bit_1_cnt[i] += check_buffer_bit1_cnt(g_global_mem_buffer[MEM_PATTERN_READ],256);
+			if(bit_1_cnt[i]&&!flag)
+			{
+			    flag = 1;
+				printf("\r\n zero pattern vth worsest case:%fV\r\n",volt_list[i]);
+			}
+		}
+		
+	printf(".");
+  }
+	
+	// print result 
+	printf("\r\nVT_bit_cnt_%ld=[",cycle_idx);
+	for(i = 0; i < sizeof(read_volt_ref_2007_list);i++)
+	{
+	   if(i == 0)
+	   	{
+			printf("%3d ",bit_1_cnt[0]);
+	   	}
+	    else
+	   	{
+			printf("%3d ",(bit_1_cnt[i]-bit_1_cnt[i-1])>=0 ? (bit_1_cnt[i]-bit_1_cnt[i-1]):0);
+	   	}
+		
+	}
+	
+	printf("];\r\n");
+
+  // print  voltage
+	printf("\r\nVT_volt_list=[");
+	for(i = 0; i < sizeof(read_volt_ref_2007_list);i++)
+	{
+	  
+		printf("%f ",volt_list[i]);
+	}
+	
+	printf("];\r\n");
+	
+	TEST_END
+} 

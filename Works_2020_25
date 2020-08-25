@@ -1,0 +1,23 @@
+#include<stdio.h>
+#define  message_for(a,b,c) printf(#a " and " #b " and "#c": We love you all!\n")
+
+int square(x)                                   //the definition of function->>square()
+{
+	return x * x;
+
+}
+
+int main(void)
+{
+	int a;
+	int ret;
+	
+	printf("please input a value:>");
+	scanf_s("%d", &a);
+	ret = square(a);                             //application
+    
+		message_for(Carole, Debra, Wayne);
+		printf("%d\n", ret);
+
+	return ret;
+}
